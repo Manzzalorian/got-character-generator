@@ -1,10 +1,11 @@
 {
-  "name": "api",
+  "name": "got-character-generator",
   "version": "1.0.0",
   "description": "Serverless webpack example using Typescript",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy":"sle deploy"
   },
   "dependencies": {
     "@types/aws-sdk": "^2.7.0",
@@ -27,6 +28,6 @@
     "webpack": "^4.29.0",
     "webpack-node-externals": "^1.7.2"
   },
-  "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
+  "author": "https://github.com/Manzzalorian",
   "license": "MIT"
 }
