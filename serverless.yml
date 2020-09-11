@@ -1,0 +1,118 @@
+service: api
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: sa-east-1
+  timeout: 30
+  versionFunctions: false
+  stage: ${opt:stage, 'dev'}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    SQS: ${self:service}-${opt:stage, self:provider.stage}
+    THE_QUEUE_URL: { Ref: SQSQueue }
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource:
+        Fn::GetAtt: [ SQSQueue , Arn ]
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: 
+        Fn::GetAtt: [ characterTable , Arn ]
+  apiKeys:
+    - SR:
+        - mobile
+    - SSR:
+        - server
+    - UR:
+        - web
+  usagePlan:
+    - SR:
+        quota:
+          limit: 50
+          offset: 2
+          period: MONTH
+        throttle:
+          burstLimit: 5
+          rateLimit: 5
+    - SSR:
+        quota:
+          limit: 500
+          offset: 2
+          period: MONTH
+        throttle:
+          burstLimit: 50
+          rateLimit: 50
+    - UR:
+        quota:
+          limit: 5000
+          offset: 1
+          period: MONTH
+        throttle:
+          burstLimit: 500
+          rateLimit: 500
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+custom:
+  serverless-offline:
+    port: 4000
+  webpackIncludeModules:
+    forceInclude:
+      - uuid
+
+functions:
+  create:
+    handler: handler.create
+    events:
+      - http:
+          path: create
+          method: post
+          cors: true
+          private: true
+  generateChar:
+    handler: handler.generateChar
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [ SQSQueue , Arn ]
+  read:
+    handler: handler.read
+    events:
+      - http:
+          path: read/{id}
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    SQSQueue:
+      Type: 'AWS::SQS::Queue'
+      Properties:
+        QueueName: ${self:provider.environment.SQS}
+    characterTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
